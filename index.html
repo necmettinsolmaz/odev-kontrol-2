@@ -13,14 +13,15 @@
     <style>
         /* SAF CSS: Durum Butonu Stilleri */
         .status-cell { 
-            padding: 8px; 
+			margin: 0px;
+            padding: 2px; 
             white-space: nowrap;
         }
 
         .status { 
             cursor: pointer; 
             border-radius: 6px; 
-            padding: 8px 6px; /* Dikey padding rahatlatıldı */
+            padding: 12px 6px; /* Dikey padding rahatlatıldı */
             color: white; 
             transition: background-color 0.15s ease-in-out;
             font-weight: 500;
@@ -183,7 +184,7 @@
                 const select = document.getElementById('classSelect');
                 const prev = selectValue !== undefined ? selectValue : select.value;
                 
-                select.innerHTML = '<option value="">-- Sınıf Seç --</option>' + Object.keys(classes).map(cls=>`<option value="${cls}">${cls}</option>`).join('');
+                select.innerHTML = '<option value="">Sınıf Seçiniz</option>' + Object.keys(classes).map(cls=>`<option value="${cls}">${cls}</option>`).join('');
                 
                 if(prev && classes[prev]){
                     select.value = prev;
