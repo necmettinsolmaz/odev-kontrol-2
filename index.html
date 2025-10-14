@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ödev Takip Sistemi - Final</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/tr.js"></script>
+    
+    <style>
+        /* SAF CSS: Durum Butonu Stilleri */
+        .status-cell { 
+			margin: 0px;
+            padding: 2px; 
+            white-space: nowrap;
+        }
+
+        .status { 
+            cursor: pointer; 
+            border-radius: 6px; 
+            padding: 12px 6px; /* Dikey padding rahatlatıldı */
+            color: white; 
+            transition: background-color 0.15s ease-in-out;
+            font-weight: 500;
+            font-size: 0.75rem; /* text-xs'e geri döndü */
+            line-height: 1;
+            width: 100%; 
+            min-width: 5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+			/* YENİ VE CANLI RENK PALETİ */
+		/* Kırmızı - Yapmadı */
+		.Yapmadı { background-color: #ef4444; } /* Kırmızı (Red 500) */
+		.Yapmadı:hover { background-color: #dc2626; } 
+
+		/* Turuncu/Sarı - Eksik */
+		.Eksik { background-color: #f59e0b; } /* Turuncu (Amber 500) */
+		.Eksik:hover { background-color: #d97706; } 
+
+		/* Yeşil - Yaptı */
+		.Yaptı { background-color: #10b981; } /* Canlı Yeşil (Emerald 500) */
+		.Yaptı:hover { background-color: #059669; } 
+
+		/* Mor - Gelmedi */
+		.Gelmedi { background-color: #8b5cf6; } /* Mor (Violet 500) */
+		.Gelmedi:hover { background-color: #7c3aed; } 
+
+		/* Gri/Koyu - KitapYok */
+		.KitapYok { background-color: #4b5563; } /* Koyu Gri (Gray 600) */
+		.KitapYok:hover { background-color: #374151; }
+        
+        /* Düzenlenebilir Hücreler ve Focus Stili */
+        .editable { background-color: #fff7e6; }
+        [contenteditable]:focus { outline: 2px solid #3b82f6; outline-offset: 0; }
+        
+        /* Flatpickr için hafif stil ayarlamaları (isteğe bağlı) */
+        .flatpickr-input { 
+            background-color: transparent !important;
+            border: none !important;
+            width: 100%;
+            cursor: pointer;
+            text-align: left;
+            padding: 0;
+            outline: none !important;
+        }
+
+    </style>
+</head>
+<body class="font-sans bg-gray-100 p-5 md:p-10">
+    <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">📚 Ödev Takip Sistemi</h1>
+	<div id="saveNotification" class="fixed top-5 right-5 z-50 bg-green-500 text-white p-3 rounded-lg shadow-xl transition-opacity duration-300 opacity-0 pointer-events-none">
+		✓ Kaydedildi!
+	</div>
+<div class="bg-white p-4 rounded-lg shadow-md mb-6 flex flex-wrap gap-3 items-center">
+        
+        <input type="text" id="newClassName" placeholder="Yeni Sınıf Adı" 
+               class="p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 flex-grow min-w-[150px]">
+        
+        <button id="btnAddClass" 
+                class="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition duration-150">
+            Sınıf Ekle
+        </button>
+        
+        <select id="classSelect" 
+                class="p-2 border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500 min-w-[150px]"></select>
+        
+        <button id="btnEditClass" 
+                class="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 transition duration-150">
+            Sınıf Adını Düzenle
+        </button>
+        
+        <input type="text" id="newStudent" placeholder="Yeni Öğrenci Adı" 
+               class="p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 flex-grow min-w-[150px]">
+        
+        <button id="btnAddStudent" 
+                class="bg-teal-600 text-white p-2 rounded-lg hover:bg-teal-700 transition duration-150">
+            Öğrenci Ekle
+        </button>
+    </div>
+
+	<div class="add-homework bg-white p-4 rounded-lg shadow-md mb-6 flex flex-wrap gap-3 items-center">
+			
+			<input type="text" id="source" placeholder="Kaynak" 
+				   class="p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 flex-grow min-w-[150px]">
+				   
+			<input type="text" id="topic" placeholder="Konu" 
+				   class="p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 flex-grow min-w-[150px]">
+				   
+			<input type="text" id="pages" placeholder="Sayfa" 
+				   class="p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 w-28"> 
+				   
+			<button id="btnAddHomework" 
+					class="bg-emerald-600 text-white p-2 rounded-lg hover:bg-emerald-700 transition duration-150 w-28">
+				Ödevi Ekle
+			</button>
+		</div>
+
+	<div id="tableHeaderArea" class="mt-4 mb-3 flex justify-between items-center p-2 bg-white rounded-lg shadow-md">
+			
+			<h2 id="currentClassNameDisplay" class="text-xl font-bold text-gray-700">Lütfen Bir Sınıf Seçin</h2>
+			
+			<div class="flex gap-3">
+				<button id="btnExportJSON" class="bg-gray-600 text-white p-2 rounded-lg text-sm hover:bg-gray-700 transition duration-150">JSON Aktar</button>
+				<button id="btnExportCSV" class="bg-gray-600 text-white p-2 rounded-lg text-sm hover:bg-gray-700 transition duration-150">Excel (CSV) Aktar</button>
+			</div>
+		</div>
+		
+
+
+    <div class="overflow-x-auto shadow-lg rounded-lg">
+        <table id="homeworkTable" class="min-w-full divide-y divide-gray-200">
+            <thead id="tableHead" class="bg-blue-600">
+            </thead>
+            <tbody id="homeworkBody" class="bg-white divide-y divide-gray-200">
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+		let classes; 
+		let currentClass = '';
+        document.addEventListener('DOMContentLoaded', function(){
+		
+            classes = JSON.parse(localStorage.getItem('classes') || '{}');
+            
+            const statuses = ["Yapmadı","Yaptı","Eksik","Gelmedi","KitapYok"];
+
+            function saveData(){ localStorage.setItem('classes', JSON.stringify(classes)); 
+				
+                // YENİ KOD: Kaydedildi Bildirimi
+                const notification = document.getElementById('saveNotification');
+                notification.classList.remove('opacity-0', 'bg-red-500'); // Hata rengini kaldır (varsa)
+                notification.classList.add('opacity-100', 'bg-green-500');
+                
+                // 1.5 saniye sonra bildirimi gizle
+                setTimeout(() => {
+                    notification.classList.remove('opacity-100');
+                    notification.classList.add('opacity-0');
+                }, 1500);
+			}
+
+            // TARİH YARDIMCI FONKSİYONLARI
+            function getIsoDate(date) {
+                return date.toISOString().split('T')[0];
+            }
+
+            const monthNames = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
+            const dayNames = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
+
+            function formatDateToTurkish(isoDateString) {
+                if (!isoDateString) return '';
+                const parts = isoDateString.split('-');
+                if (parts.length !== 3) return isoDateString; 
+
+                const date = new Date(isoDateString);
+                date.setMinutes(date.getMinutes() + date.getTimezoneOffset()); 
+
+                const dayOfMonth = date.getDate();
+                const month = monthNames[date.getMonth()];
+                const dayOfWeek = dayNames[date.getDay()];
+                
+                return `${dayOfMonth} ${month}. ${dayOfWeek}`;
+            }
+
+            function updateClassSelect(selectValue){
+                // ... (Sınıf Seçim Mantığı) ...
+                const select = document.getElementById('classSelect');
+                const prev = selectValue !== undefined ? selectValue : select.value;
+                
+                select.innerHTML = '<option value="">Sınıf Seçiniz</option>' + Object.keys(classes).map(cls=>`<option value="${cls}">${cls}</option>`).join('');
+                
+                if(prev && classes[prev]){
+                    select.value = prev;
+                    currentClass = prev;
+                } else {
+                    select.value = '';
+                    currentClass = '';
+                }
+            }
+
+            function renderTable(){
+                 const tbody=document.getElementById('homeworkBody');
+                const thead=document.getElementById('tableHead');
+                const display = document.getElementById('currentClassNameDisplay');
+                const tableHeaderArea = document.getElementById('tableHeaderArea');
+                
+                // Tabloyu her zaman temizle
+                thead.innerHTML = '';
+                tbody.innerHTML = ''; 
+
+                // Sınıf Seçili Değilse Başlığı Güncelle ve Durdur
+                if(!currentClass || !classes[currentClass]){
+                    display.innerText = 'Lütfen Bir Sınıf Seçin';
+                    tableHeaderArea.classList.add('hidden'); 
+                    return; 
+                }
+                
+                // Sınıf Seçili İse Başlığı Güncelle ve Tabloyu Oluşturmaya Başla
+                tableHeaderArea.classList.remove('hidden');
+                display.innerText = `${currentClass} Sınıfı Ödev Takibi`;
+               
+                
+                // ... (Tablo Başlığı Oluşturma Mantığı) ...
+                const studentHeaders = classes[currentClass].students.map((s,i) => 
+                    `<th class="px-2 py-3 text-xs font-semibold uppercase tracking-wider text-white bg-blue-700 cursor-pointer" data-index='${i}' title="Öğrenci adını düzenlemek için çift tıklayın">${s}</th>`
+                ).join('');
+                
+                thead.innerHTML = `
+                    <tr>
+                        <th class="px-2 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white">#</th>
+                        <th class="px-2 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white">Kaynak</th>
+                        <th class="px-2 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white">Konu</th>
+                        <th class="px-2 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white">Sayfa</th>
+                        <th class="px-2 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white">Veriliş</th>
+                        <th class="px-2 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white">Kontrol</th>
+                        ${studentHeaders}
+                    </tr>
+                `;
+
+
+                // Tablo İçeriğini Oluştur
+                classes[currentClass].homeworks.forEach((hw,hwIndex)=>{
+                    const row=document.createElement('tr');
+                    row.classList.add('hover:bg-gray-50');
+
+                    // Tarih Hücreleri için INPUT alanı oluşturuldu
+                    const givenDateInput = `<input type="text" readonly class="flatpickr-input" data-date-field="givenDate" data-hw='${hwIndex}' value="${formatDateToTurkish(hw.givenDate) || ''}">`;
+                    const checkDateInput = `<input type="text" readonly class="flatpickr-input" data-date-field="checkDate" data-hw='${hwIndex}' value="${formatDateToTurkish(hw.checkDate) || ''}">`;
+
+
+                    // Ödev Bilgileri Sütunları
+                    const hwCells = `
+                        <td class="px-2 py-2 whitespace-nowrap text-sm font-medium text-gray-900">${hwIndex+1}</td>
+                        <td contenteditable class='editable px-2 py-2 whitespace-nowrap text-sm text-gray-700' data-field='source' data-index='${hwIndex}' data-type='text'>${hw.source || ''}</td>
+                        <td contenteditable class='editable px-2 py-2 whitespace-nowrap text-sm text-gray-700' data-field='topic' data-index='${hwIndex}' data-type='text'>${hw.topic || ''}</td>
+                        <td contenteditable class='editable px-2 py-2 whitespace-nowrap text-sm text-gray-700' data-field='pages' data-index='${hwIndex}' data-type='text'>${hw.pages || ''}</td>
+                        
+                        <td class="px-2 py-2 whitespace-nowrap text-sm text-gray-700 date-cell" data-field='givenDate' data-index='${hwIndex}'>${givenDateInput}</td>
+                        <td class="px-2 py-2 whitespace-nowrap text-sm text-gray-700 date-cell" data-field='checkDate' data-index='${hwIndex}'>${checkDateInput}</td>
+                    `;
+                    
+                    // Öğrenci Durum Sütunları
+                    const statusCells = hw.statuses.map((status,studentIndex) => 
+                        `<td class="status-cell"><div class="status ${status}" data-hw='${hwIndex}' data-student='${studentIndex}'>${status}</div></td>`
+                    ).join('');
+
+                    row.innerHTML = hwCells + statusCells;
+                    tbody.appendChild(row);
+                });
+
+
+                // 1. Düz Metin Alanları Düzenleme (Çift Tıklama)
+                document.querySelectorAll('.editable').forEach(cell=>{
+                    cell.setAttribute('contenteditable', 'false');
+
+                    cell.removeEventListener('blur', cell._blurHandler);
+                    cell.removeEventListener('keydown', cell._keyHandler);
+                    cell.removeEventListener('dblclick', cell._dblclickHandler);
+
+                    cell._blurHandler = function(){
+                        const index = this.dataset.index;
+                        const field = this.dataset.field;
+                        classes[currentClass].homeworks[index][field] = this.innerText.trim();
+                        saveData();
+                        this.setAttribute('contenteditable', 'false');
+                    };
+                    
+                    cell._keyHandler = function(e){
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            this.blur();
+                        }
+                    };
+                    
+                    cell._dblclickHandler = function(){
+                        this.setAttribute('contenteditable', 'true');
+                        this.focus();
+                    };
+
+                    cell.addEventListener('blur', cell._blurHandler);
+                    cell.addEventListener('keydown', cell._keyHandler);
+                    cell.addEventListener('dblclick', cell._dblclickHandler); 
+                });
+                
+                // 2. Durum Değiştirme (Tek Tıklama)
+                // ... (Önceki mantık aynı kalır) ...
+                document.querySelectorAll('.status').forEach(cell=>{
+                    cell.removeEventListener('click', cell._clickHandler);
+                    cell._clickHandler = function(){
+                        const hwIndex = Number(this.dataset.hw);
+                        const studentIndex = Number(this.dataset.student);
+                        
+                        const oldStatus = classes[currentClass].homeworks[hwIndex].statuses[studentIndex];
+                        let current = statuses.indexOf(oldStatus);
+                        
+                        current = (current + 1) % statuses.length;
+                        const newStatus = statuses[current];
+                        
+                        classes[currentClass].homeworks[hwIndex].statuses[studentIndex] = newStatus;
+                        saveData();
+                        
+                        this.classList.remove(oldStatus); 
+                        this.classList.add(newStatus); 
+                        this.innerText = newStatus;
+                    };
+                    cell.addEventListener('click', cell._clickHandler);
+                });
+
+                // 3. Öğrenci Adı Düzenleme (Çift Tıklama)
+                // ... (Önceki mantık aynı kalır) ...
+                document.querySelectorAll('#tableHead th[data-index]').forEach(th=>{
+                    th.removeEventListener('dblclick', th._dblHandler);
+                    th._dblHandler = function(){
+                        const index = Number(this.dataset.index);
+                        const oldName = classes[currentClass].students[index];
+                        const newName = prompt('Yeni öğrenci adı:', oldName);
+                        if(newName && newName.trim() !== oldName){
+                            classes[currentClass].students[index] = newName.trim();
+                            saveData(); renderTable();
+                        }
+                    };
+                    th.addEventListener('dblclick', th._dblHandler);
+                });
+                
+                // 4. Flatpickr (Tarih) Entegrasyonu
+                document.querySelectorAll('.flatpickr-input').forEach(input => {
+                    const hwIndex = Number(input.dataset.hw);
+                    const field = input.dataset.dateField;
+                    
+                    // Flatpickr'ı başlat
+                    flatpickr(input, {
+                        locale: 'tr', // Türkçe dil
+                        defaultDate: classes[currentClass].homeworks[hwIndex][field], // Mevcut ISO tarihi
+                        dateFormat: "Y-m-d", // Veritabanı (localStorage) formatı
+                        altInput: true,
+                        altFormat: "j M. D", // Görünen format: 17 Tem. Salı
+                        
+                        // Tarih seçildiğinde
+                        onClose: function(selectedDates, dateStr, instance) {
+                            if (selectedDates.length > 0) {
+                                // Yeni tarihi kaydet
+                                classes[currentClass].homeworks[hwIndex][field] = dateStr;
+                                saveData();
+                                
+                                // DOM'u manuel olarak güncelle (Flatpickr, altInput'u kullandığı için otomatik günceller)
+                                // Not: Yine de tutarlı olmak için renderTable() çağrılabilir, ancak bu performansı etkiler.
+                                // Sadece bu hücrenin güncellenmesi yeterlidir.
+                            }
+                        }
+                    });
+                });
+
+            }
+
+            function loadClass(){
+                currentClass = document.getElementById('classSelect').value;
+                renderTable();
+            }
+
+            // ... (addClass, editClass, addStudent fonksiyonları aynı kalır) ...
+            
+            function addClass(){
+                const nameInput = document.getElementById('newClassName');
+                const name = nameInput.value.trim();
+                if(!name){ alert('Lütfen bir sınıf adı girin.'); return; }
+                if(!classes[name]){
+                    classes[name] = { students: [], homeworks: [] };
+                    updateClassSelect(name); 
+                    document.getElementById('classSelect').value = name;
+                    currentClass = name; 
+                    renderTable(); saveData();
+                } else {
+                    alert(`'${name}' adında bir sınıf zaten mevcut.`);
+                }
+                nameInput.value = '';
+            }
+            
+            function editClass(){
+                if(!currentClass){ alert('Önce düzenlemek istediğiniz sınıfı seçin.'); return; }
+                const newName = prompt('Yeni sınıf adı:', currentClass);
+                if(newName && newName.trim() !== currentClass && !classes[newName.trim()]){
+                    classes[newName.trim()] = classes[currentClass];
+                    delete classes[currentClass];
+                    updateClassSelect(newName.trim());
+                    document.getElementById('classSelect').value = newName.trim();
+                    currentClass = newName.trim();
+                    saveData(); renderTable();
+                } else if (newName && newName.trim() !== currentClass) {
+                    alert(`'${newName.trim()}' adında bir sınıf zaten mevcut veya boş bir isim girdiniz.`);
+                }
+            }
+
+            function addStudent(){
+                if(!currentClass){ alert('Önce öğrenci eklemek istediğiniz sınıfı seçin.'); return; }
+                const nameInput = document.getElementById('newStudent');
+                const name = nameInput.value.trim();
+                
+                if(!name){ alert('Lütfen bir öğrenci adı girin.'); return; }
+                
+                if(!classes[currentClass].students.includes(name)){
+                    classes[currentClass].students.push(name);
+                    classes[currentClass].homeworks.forEach(hw => hw.statuses.push('Yapmadı')); 
+                    saveData(); 
+                    renderTable(); 
+                } else {
+                    alert(`'${name}' adlı öğrenci zaten bu sınıfta.`);
+                }
+                nameInput.value = '';
+            }
+
+
+            // Ödev Ekleme (Basitleştirildi: Tarih otomatik atanacak)
+            function addHomework(){
+                if(!currentClass){ alert('Önce ödev eklemek istediğiniz sınıfı seçin.'); return; }
+                
+                const sourceInput = document.getElementById('source');
+                const topicInput = document.getElementById('topic');
+                const pagesInput = document.getElementById('pages');
+
+                const source = sourceInput.value.trim();
+                const topic = topicInput.value.trim();
+                const pages = pagesInput.value.trim();
+                
+                if(!source || !topic || !pages){ alert('Kaynak, Konu ve Sayfa alanlarını doldurun.'); return; }
+                
+                // Tarihleri Otomatik Olarak Ata (Bugün ve 7 gün sonrası)
+                let givenDateObj = new Date();
+                let givenDate = getIsoDate(givenDateObj);
+                
+                let checkDateObj = new Date(givenDateObj);
+                checkDateObj.setDate(givenDateObj.getDate() + 7);
+                let checkDate = getIsoDate(checkDateObj);
+                
+                const hw = { 
+                    source, 
+                    topic, 
+                    pages, 
+                    givenDate, // ISO formatında sakla
+                    checkDate, // ISO formatında sakla
+                    statuses: classes[currentClass].students.map(()=> 'Yapmadı') 
+                };
+                
+                classes[currentClass].homeworks.push(hw);
+                saveData(); 
+                renderTable(); 
+                
+                // Form alanlarını temizle
+                sourceInput.value = '';
+                topicInput.value = '';
+                pagesInput.value = '';
+            }
+            
+            // ... (exportJSON ve exportCSV fonksiyonları aynı kalır) ...
+           function exportJSON(){
+                if(!Object.keys(classes).length){ 
+                    alert('Kaydedilmiş veri bulunmamaktadır.'); return; 
+                }
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(classes, null, 2));
+                
+                const dl = document.createElement('a'); 
+                dl.href = dataStr; 
+                dl.download = 'odev_takip_tum_siniflar_' + new Date().toISOString().split('T')[0] + '.json'; 
+                document.body.appendChild(dl); // Chrome/Edge için bazen gerekli
+                dl.click();
+                document.body.removeChild(dl);
+            }
+
+            function exportCSV(){
+                if(!currentClass){ 
+                    alert('Lütfen önce dışa aktarmak istediğiniz sınıfı seçin.'); 
+                    return; 
+                }
+
+                // UTF-8 BOM, Türkçe karakterlerin Excel'de düzgün görünmesi için önemlidir
+                const BOM = "\uFEFF"; 
+                
+                const header = ['#','Kaynak','Konu','Sayfa','Veriliş Tarihi','Kontrol Tarihi', ...classes[currentClass].students];
+                
+                const rows = classes[currentClass].homeworks.map((hw, idx) => {
+                    const pagesValue = (hw.pages || '').includes('-') || (hw.pages || '').includes('/') ? "'" + hw.pages : hw.pages;
+                    
+                    return [
+                        idx+1, 
+                        hw.source, 
+                        hw.topic, 
+                        pagesValue, // Sayfa Numarası için özel kontrol
+                        hw.givenDate, 
+                        hw.checkDate, 
+                        ...hw.statuses
+                    ];
+                });
+               // Virgül, tırnak işareti ve yeni satır karakterlerini temizle ve tırnak içine al
+                const cleanAndQuote = (val) => {
+                    if(val === null || val === undefined) return '';
+                    const strVal = String(val).replace(/\n/g, ' ').trim();
+                    return `"${strVal.replace(/"/g, '""')}"`;
+                };
+                
+               const csv = [
+                    header.map(cleanAndQuote).join(';'), 
+                    ...rows.map(r => r.map(cleanAndQuote).join(';'))
+                ].join('\n');
+                
+               // Yeni Blob/URL yöntemi daha güvenilirdir.
+                const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                
+                const dl = document.createElement('a'); 
+                dl.href = url; 
+                dl.download = `${currentClass}_odev_takip_${new Date().toISOString().split('T')[0]}.csv`; 
+                document.body.appendChild(dl);
+                dl.click();
+                document.body.removeChild(dl);
+                URL.revokeObjectURL(url); // Belleği temizle
+            }
+
+
+            // Olay Dinleyicileri
+            document.getElementById('btnAddClass').addEventListener('click', addClass);
+            document.getElementById('btnEditClass').addEventListener('click', editClass);
+            document.getElementById('btnAddStudent').addEventListener('click', addStudent);
+            document.getElementById('btnAddHomework').addEventListener('click', addHomework);
+            document.getElementById('btnExportJSON').addEventListener('click', exportJSON);
+            document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
+            document.getElementById('classSelect').addEventListener('change', loadClass);
+
+            // Başlangıç Mantığı
+            updateClassSelect();
+            if(currentClass) loadClass(); else renderTable();
+        });
+    </script>
+</body>
+</html>
