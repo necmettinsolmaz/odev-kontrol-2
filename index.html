@@ -32,7 +32,18 @@
             display: flex;
             align-items: center;
             justify-content: center;
+			/* YENİ: Emoji konumlandırma için */
+			position: relative; 
         }
+		/* YENİ CSS: Emoji'nin stilini belirler */
+		.status .change-marker {
+			position: absolute;
+			top: -5px; /* Butonun hafifçe üstüne yerleştir */
+			right: 0px; /* Sağa yakın yerleştir */
+			font-size: 1.2rem;
+			line-height: 1;
+			z-index: 10;
+		}
 
 			/* YENİ VE CANLI RENK PALETİ */
 		/* Kırmızı - Yapmadı */
@@ -69,11 +80,18 @@
             padding: 0;
             outline: none !important;
         }
-
+		/* YENİ CSS: EN SON DEĞİŞEN HÜCRE ETKİSİ (KALICI VURGU) */
+		/* Vurgu, bir sonraki tıklamaya kadar kalıcı olacaktır. */
+		.status.last-changed {
+			/* Daha parlak ve belirgin bir Siyan Mavi renk */
+			box-shadow: 0 0 0 4px #06b6d4; /* Kalınlık 3px'ten 4px'e çıkarıldı */
+			border: 2px solid #0891b2; /* Çerçevenin iç kısmına da ince bir kenarlık ekleyelim */
+			transition: box-shadow 0.1s ease-out, border 0.1s ease-out; 
+		}
     </style>
 </head>
 <body class="font-sans bg-gray-100 p-5 md:p-10">
-    <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">📚 Ödev Takip Sistemi</h1>
+    <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Ödev Takip Sistemi</h1>
 	<div id="saveNotification" class="fixed top-5 right-5 z-50 bg-green-500 text-white p-3 rounded-lg shadow-xl transition-opacity duration-300 opacity-0 pointer-events-none">
 		✓ Kaydedildi!
 	</div>
@@ -308,29 +326,55 @@
                     cell.addEventListener('dblclick', cell._dblclickHandler); 
                 });
                 
-                // 2. Durum Değiştirme (Tek Tıklama)
-                // ... (Önceki mantık aynı kalır) ...
-                document.querySelectorAll('.status').forEach(cell=>{
-                    cell.removeEventListener('click', cell._clickHandler);
-                    cell._clickHandler = function(){
-                        const hwIndex = Number(this.dataset.hw);
-                        const studentIndex = Number(this.dataset.student);
-                        
-                        const oldStatus = classes[currentClass].homeworks[hwIndex].statuses[studentIndex];
-                        let current = statuses.indexOf(oldStatus);
-                        
-                        current = (current + 1) % statuses.length;
-                        const newStatus = statuses[current];
-                        
-                        classes[currentClass].homeworks[hwIndex].statuses[studentIndex] = newStatus;
-                        saveData();
-                        
-                        this.classList.remove(oldStatus); 
-                        this.classList.add(newStatus); 
-                        this.innerText = newStatus;
-                    };
-                    cell.addEventListener('click', cell._clickHandler);
-                });
+                // 2. Durum Değiştirme (Çift Tıklama ve Kalıcı Vurgu)
+				// Lütfen mevcut "document.querySelectorAll('.status').forEach(cell=>..." bloğunuzu bununla değiştirin.
+				document.querySelectorAll('.status').forEach(cell => {
+					// Önceki olay dinleyicilerini temizleyelim
+					cell.removeEventListener('click', cell._clickHandler);
+					cell.removeEventListener('dblclick', cell._dblClickHandler); // Yeni dinleyiciyi de temizleyelim
+
+					cell._dblClickHandler = function() {
+						// --- 1. DURUM DEĞİŞİKLİĞİ MANTIĞI ---
+						const hwIndex = Number(this.dataset.hw);
+						const studentIndex = Number(this.dataset.student);
+						
+						const oldStatus = classes[currentClass].homeworks[hwIndex].statuses[studentIndex];
+						let current = statuses.indexOf(oldStatus);
+						
+						current = (current + 1) % statuses.length;
+						const newStatus = statuses[current];
+						
+						// Veriyi Güncelle ve Kaydet
+						classes[currentClass].homeworks[hwIndex].statuses[studentIndex] = newStatus;
+						saveData();
+
+						// --- 2. VİSUEL GÜNCELLEME (Gereksiz renderTable çağrısını önler) ---
+						
+						// Butonun Görünümünü Güncelle
+						this.classList.remove(oldStatus); 
+						this.classList.add(newStatus); 
+						this.innerText = newStatus;
+
+						// --- 3. KALICI VURGU MANTIĞI ---
+						
+						// Önceki vurguyu kaldır (tüm tablodan)
+						const previousMarker = document.querySelector('.status .change-marker');
+						if (previousMarker) {
+							previousMarker.remove(); // Önceki emojiyi DOM'dan kaldır
+						}
+
+						// Yeni marker (emoji) elementi oluştur
+						const marker = document.createElement('span');
+						marker.classList.add('change-marker');
+						marker.innerHTML = '✍️'; // Parlak yıldız emojisi
+
+						// Yeni emojiyi bu butona ekle
+						this.appendChild(marker);
+					};
+					
+					// KRİTİK DEĞİŞİKLİK: 'click' yerine 'dblclick' ile dinlemeye başla
+					cell.addEventListener('dblclick', cell._dblClickHandler);
+				});
 
                 // 3. Öğrenci Adı Düzenleme (Çift Tıklama)
                 // ... (Önceki mantık aynı kalır) ...
