@@ -327,13 +327,13 @@
                 });
                 
                 // 2. Durum Değiştirme (Çift Tıklama ve Kalıcı Vurgu)
-				// Lütfen mevcut "document.querySelectorAll('.status').forEach(cell=>..." bloğunuzu bununla değiştirin.
 				document.querySelectorAll('.status').forEach(cell => {
-					// Önceki olay dinleyicilerini temizleyelim
+					// Önceki olay dinleyicilerini temizleyelim (İki tip dinleyiciyi de temizleyelim)
 					cell.removeEventListener('click', cell._clickHandler);
-					cell.removeEventListener('dblclick', cell._dblClickHandler); // Yeni dinleyiciyi de temizleyelim
+					cell.removeEventListener('dblclick', cell._dblClickHandler); 
 
-					cell._dblClickHandler = function() {
+					// Tek tıklama için yeni dinleyiciyi tanımlayalım
+					cell._clickHandler = function() { // İsimlendirmeyi dblClickHandler yerine clickHandler olarak değiştirdik
 						// --- 1. DURUM DEĞİŞİKLİĞİ MANTIĞI ---
 						const hwIndex = Number(this.dataset.hw);
 						const studentIndex = Number(this.dataset.student);
@@ -351,8 +351,8 @@
 						// --- 2. VİSUEL GÜNCELLEME (Gereksiz renderTable çağrısını önler) ---
 						
 						// Butonun Görünümünü Güncelle
-						this.classList.remove(oldStatus); 
-						this.classList.add(newStatus); 
+						this.classList.remove(oldStatus); 
+						this.classList.add(newStatus); 
 						this.innerText = newStatus;
 
 						// --- 3. KALICI VURGU MANTIĞI ---
@@ -372,8 +372,8 @@
 						this.appendChild(marker);
 					};
 					
-					// KRİTİK DEĞİŞİKLİK: 'click' yerine 'dblclick' ile dinlemeye başla
-					cell.addEventListener('dblclick', cell._dblClickHandler);
+					// KRİTİK DEĞİŞİKLİK: 'dblclick' yerine 'click' ile dinlemeye başla
+					cell.addEventListener('click', cell._clickHandler);
 				});
 
                 // 3. Öğrenci Adı Düzenleme (Çift Tıklama)
