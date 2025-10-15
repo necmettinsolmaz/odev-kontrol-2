@@ -534,55 +534,107 @@
                 dl.click();
                 document.body.removeChild(dl);
             }
+			function formatDateTurkish(isoDate) {
+				if (!isoDate) return '';
+				
+				// YYYY-MM-DD formatındaki tarihi Date nesnesine çevir
+				const parts = isoDate.split('-');
+				// Not: Ay indeksi 0'dan başlar (parts[1] - 1)
+				const date = new Date(parts[0], parts[1] - 1, parts[2]);
 
-            function exportCSV(){
-                if(!currentClass){ 
-                    alert('Lütfen önce dışa aktarmak istediğiniz sınıfı seçin.'); 
-                    return; 
-                }
+				const options = { 
+					day: 'numeric',   // Günü sayı olarak (15)
+					month: 'long',    // Ay ismini tam olarak (Ekim)
+					weekday: 'long'   // Haftanın gününü tam olarak (Çarşamba)
+				};
+				
+				// 'tr-TR' dilini kullanarak formatla
+				const formattedDate = date.toLocaleDateString('tr-TR', options);
+				
+				// toLocaleDateString, genellikle "GG.AY.YYYY" gibi bir format verir.
+				// Bizim istediğimiz: "15 Ekim Çarşamba"
+				
+				// Bu formatı elde etmek için daha spesifik bir ayar kullanalım
+				const day = date.getDate();
+				const month = date.toLocaleDateString('tr-TR', { month: 'long' });
+				const weekday = date.toLocaleDateString('tr-TR', { weekday: 'long' });
 
-                // UTF-8 BOM, Türkçe karakterlerin Excel'de düzgün görünmesi için önemlidir
-                const BOM = "\uFEFF"; 
-                
-                const header = ['#','Kaynak','Konu','Sayfa','Veriliş Tarihi','Kontrol Tarihi', ...classes[currentClass].students];
-                
-                const rows = classes[currentClass].homeworks.map((hw, idx) => {
-                    const pagesValue = (hw.pages || '').includes('-') || (hw.pages || '').includes('/') ? "'" + hw.pages : hw.pages;
-                    
-                    return [
-                        idx+1, 
-                        hw.source, 
-                        hw.topic, 
-                        pagesValue, // Sayfa Numarası için özel kontrol
-                        hw.givenDate, 
-                        hw.checkDate, 
-                        ...hw.statuses
-                    ];
-                });
-               // Virgül, tırnak işareti ve yeni satır karakterlerini temizle ve tırnak içine al
-                const cleanAndQuote = (val) => {
-                    if(val === null || val === undefined) return '';
-                    const strVal = String(val).replace(/\n/g, ' ').trim();
-                    return `"${strVal.replace(/"/g, '""')}"`;
-                };
-                
-               const csv = [
-                    header.map(cleanAndQuote).join(';'), 
-                    ...rows.map(r => r.map(cleanAndQuote).join(';'))
-                ].join('\n');
-                
-               // Yeni Blob/URL yöntemi daha güvenilirdir.
-                const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                
-                const dl = document.createElement('a'); 
-                dl.href = url; 
-                dl.download = `${currentClass}_odev_takip_${new Date().toISOString().split('T')[0]}.csv`; 
-                document.body.appendChild(dl);
-                dl.click();
-                document.body.removeChild(dl);
-                URL.revokeObjectURL(url); // Belleği temizle
-            }
+				// İstediğiniz virgülsüz formatı boşluklarla birleştirir
+				return `${day} ${month} ${weekday}`;
+				// Çıktı Örn: 15 Ekim Çarşamba
+			}
+            function exportCSV() {
+				if (!currentClass) {
+					alert('Lütfen önce dışa aktarmak istediğiniz sınıfı seçin.');
+					return;
+				}
+
+				// UTF-8 BOM: Türkçe karakterlerin Excel’de düzgün görünmesi için
+				const BOM = "\uFEFF";
+
+				const header = [
+					'#',
+					'Kaynak',
+					'Konu',
+					'Sayfa',
+					'Veriliş Tarihi',
+					'Kontrol Tarihi',
+					...classes[currentClass].students
+				];
+
+				const rows = classes[currentClass].homeworks.map((hw, idx) => {
+					const pagesValue =
+						(hw.pages || '').includes('-') || (hw.pages || '').includes('/')
+							? "'" + hw.pages
+							: hw.pages;
+
+					return [
+						idx + 1,
+						hw.source,
+						hw.topic,
+						pagesValue,
+						formatDateTurkish(hw.givenDate), // Veriliş Tarihi
+						formatDateTurkish(hw.checkDate), // Kontrol Tarihi
+						...hw.statuses
+					];
+				});
+
+				// CSV için güvenli değer dönüşümü
+				const cleanAndQuote = (val) => {
+					if (val === null || val === undefined) return '';
+					const strVal = String(val).replace(/\n/g, ' ').trim();
+					return `"${strVal.replace(/"/g, '""')}"`;
+				};
+
+				// ✅ 1. Satır: SINIF başlığı (tüm sütun sayısına göre doğru şekilde oluşturulur)
+				const classTitleRow = [
+					`SINIF: ${currentClass}`,
+					...new Array(header.length - 1).fill('')
+				].map(cleanAndQuote).join(';');
+
+				// ✅ 2. Satır: Sütun başlıkları + 3. ve sonraki satırlar: ödevler
+				const csv = [
+					classTitleRow,
+					header.map(cleanAndQuote).join(';'),
+					...rows.map(r => r.map(cleanAndQuote).join(';'))
+				].join('\n');
+
+				// ✅ CSV dosyasını oluştur ve indir
+				const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+				const url = URL.createObjectURL(blob);
+
+				const dl = document.createElement('a');
+				dl.href = url;
+				dl.download = `${currentClass}_odev_takip_${new Date()
+					.toISOString()
+					.split('T')[0]}.csv`;
+
+				document.body.appendChild(dl);
+				dl.click();
+				document.body.removeChild(dl);
+				URL.revokeObjectURL(url);
+			}
+
 
 
             // Olay Dinleyicileri
