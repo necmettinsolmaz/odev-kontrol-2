@@ -327,13 +327,13 @@
                 });
                 
                 // 2. Durum Değiştirme (Çift Tıklama ve Kalıcı Vurgu)
-				// Lütfen mevcut "document.querySelectorAll('.status').forEach(cell=>..." bloğunuzu bununla değiştirin.
 				document.querySelectorAll('.status').forEach(cell => {
-					// Önceki olay dinleyicilerini temizleyelim
+					// Önceki olay dinleyicilerini temizleyelim (Her ihtimale karşı)
 					cell.removeEventListener('click', cell._clickHandler);
-					cell.removeEventListener('dblclick', cell._dblClickHandler); // Yeni dinleyiciyi de temizleyelim
+					cell.removeEventListener('dblclick', cell._dblClickHandler); 
 
-					cell._dblClickHandler = function() {
+					// Çift tıklama için yeni dinleyiciyi tanımlayalım
+					cell._dblClickHandler = function() { // İsimlendirmeyi dblClickHandler olarak geri aldık
 						// --- 1. DURUM DEĞİŞİKLİĞİ MANTIĞI ---
 						const hwIndex = Number(this.dataset.hw);
 						const studentIndex = Number(this.dataset.student);
@@ -348,27 +348,21 @@
 						classes[currentClass].homeworks[hwIndex].statuses[studentIndex] = newStatus;
 						saveData();
 
-						// --- 2. VİSUEL GÜNCELLEME (Gereksiz renderTable çağrısını önler) ---
-						
-						// Butonun Görünümünü Güncelle
-						this.classList.remove(oldStatus); 
-						this.classList.add(newStatus); 
+						// --- 2. VİSUEL GÜNCELLEME ---
+						this.classList.remove(oldStatus); 
+						this.classList.add(newStatus); 
 						this.innerText = newStatus;
 
 						// --- 3. KALICI VURGU MANTIĞI ---
-						
-						// Önceki vurguyu kaldır (tüm tablodan)
 						const previousMarker = document.querySelector('.status .change-marker');
 						if (previousMarker) {
-							previousMarker.remove(); // Önceki emojiyi DOM'dan kaldır
+							previousMarker.remove();
 						}
 
-						// Yeni marker (emoji) elementi oluştur
 						const marker = document.createElement('span');
 						marker.classList.add('change-marker');
-						marker.innerHTML = '✍️'; // Parlak yıldız emojisi
+						marker.innerHTML = '✍️';
 
-						// Yeni emojiyi bu butona ekle
 						this.appendChild(marker);
 					};
 					
