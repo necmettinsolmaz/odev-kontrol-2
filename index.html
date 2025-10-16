@@ -44,6 +44,15 @@
 			line-height: 1;
 			z-index: 10;
 		}
+		/* YENİ: Boş Statü: Görünmez başlangıç durumu için */
+.status:empty {
+    background-color: #f9f9f9; /* Hafif gri arka plan */
+    color: #1f2937; /* Siyah metin */
+    border: 1px solid #d1d5db; /* Hafif kenarlık */
+    min-height: 2.25rem; /* Buton yüksekliğini korur */
+    padding: 0;
+    line-height: 2.25rem; /* Yüksekliği ortalamak için */
+}
 
 			/* YENİ VE CANLI RENK PALETİ */
 		/* Kırmızı - Yapmadı */
@@ -167,7 +176,7 @@
 		
             classes = JSON.parse(localStorage.getItem('classes') || '{}');
             
-            const statuses = ["Yapmadı","Yaptı","Eksik","Gelmedi","KitapYok"];
+            const statuses = ["", "Yaptı", "Yapmadı","Eksik","Gelmedi","KitapYok"];
 
             function saveData(){ localStorage.setItem('classes', JSON.stringify(classes)); 
 				
@@ -469,7 +478,7 @@
                 
                 if(!classes[currentClass].students.includes(name)){
                     classes[currentClass].students.push(name);
-                    classes[currentClass].homeworks.forEach(hw => hw.statuses.push('Yapmadı')); 
+                    classes[currentClass].homeworks.forEach(hw => hw.statuses.push("")); 
                     saveData(); 
                     renderTable(); 
                 } else {
@@ -507,7 +516,7 @@
                     pages, 
                     givenDate, // ISO formatında sakla
                     checkDate, // ISO formatında sakla
-                    statuses: classes[currentClass].students.map(()=> 'Yapmadı') 
+                    statuses: classes[currentClass].students.map(()=> "") 
                 };
                 
                 classes[currentClass].homeworks.push(hw);
