@@ -35,24 +35,16 @@
 			/* YENİ: Emoji konumlandırma için */
 			position: relative; 
         }
-		/* YENİ CSS: Emoji'nin stilini belirler */
-		.status .change-marker {
-			position: absolute;
-			top: -5px; /* Butonun hafifçe üstüne yerleştir */
-			right: 0px; /* Sağa yakın yerleştir */
-			font-size: 1.2rem;
-			line-height: 1;
-			z-index: 10;
-		}
+
 		/* YENİ: Boş Statü: Görünmez başlangıç durumu için */
-.status:empty {
-    background-color: #f9f9f9; /* Hafif gri arka plan */
-    color: #1f2937; /* Siyah metin */
-    border: 1px solid #d1d5db; /* Hafif kenarlık */
-    min-height: 2.25rem; /* Buton yüksekliğini korur */
-    padding: 0;
-    line-height: 2.25rem; /* Yüksekliği ortalamak için */
-}
+		.status:empty {
+			background-color: #f9f9f9; /* Hafif gri arka plan */
+			color: #1f2937; /* Siyah metin */
+			border: 1px solid #d1d5db; /* Hafif kenarlık */
+			min-height: 2.25rem; /* Buton yüksekliğini korur */
+			padding: 0;
+			line-height: 2.25rem; /* Yüksekliği ortalamak için */
+		}
 
 			/* YENİ VE CANLI RENK PALETİ */
 		/* Kırmızı - Yapmadı */
@@ -77,7 +69,7 @@
         
         /* Düzenlenebilir Hücreler ve Focus Stili */
         .editable { background-color: #fff7e6; }
-        [contenteditable]:focus { outline: 2px solid #3b82f6; outline-offset: 0; }
+        [contenteditable]:focus { outline: 2px solid #3b82f6; outline-offset: -2px; }
         
         /* Flatpickr için hafif stil ayarlamaları (isteğe bağlı) */
         .flatpickr-input { 
@@ -89,13 +81,10 @@
             padding: 0;
             outline: none !important;
         }
-		/* YENİ CSS: EN SON DEĞİŞEN HÜCRE ETKİSİ (KALICI VURGU) */
-		/* Vurgu, bir sonraki tıklamaya kadar kalıcı olacaktır. */
-		.status.last-changed {
-			/* Daha parlak ve belirgin bir Siyan Mavi renk */
-			box-shadow: 0 0 0 4px #06b6d4; /* Kalınlık 3px'ten 4px'e çıkarıldı */
-			border: 2px solid #0891b2; /* Çerçevenin iç kısmına da ince bir kenarlık ekleyelim */
-			transition: box-shadow 0.1s ease-out, border 0.1s ease-out; 
+		/* YENİ CSS: Kaydedilmemiş değişiklik için sade vurgu */
+		.status.pending-change {
+			/* Kaydedilmemişken rengi hafifçe soluklaştıralım */
+			opacity: 0.5; 
 		}
     </style>
 </head>
@@ -148,15 +137,18 @@
 			</button>
 		</div>
 
-	<div id="tableHeaderArea" class="mt-4 mb-3 flex justify-between items-center p-2 bg-white rounded-lg shadow-md">
+	<div id="tableHeaderArea" class="mt-4 mb-3 flex justify-between items-center p-2 bg-white rounded-lg shadow-md">    
+		<h2 id="currentClassNameDisplay" class="text-xl font-bold text-gray-700">Lütfen Bir Sınıf Seçin</h2>
+		
+		<div class="flex gap-3">
+			<button id="btnSaveStatuses" class="bg-red-500 text-white p-2 rounded-lg text-sm hover:bg-red-600 transition duration-150 hidden">
+				Statü Değişikliklerini Kaydet
+			</button>
 			
-			<h2 id="currentClassNameDisplay" class="text-xl font-bold text-gray-700">Lütfen Bir Sınıf Seçin</h2>
-			
-			<div class="flex gap-3">
-				<button id="btnExportJSON" class="bg-gray-600 text-white p-2 rounded-lg text-sm hover:bg-gray-700 transition duration-150">JSON Aktar</button>
-				<button id="btnExportCSV" class="bg-gray-600 text-white p-2 rounded-lg text-sm hover:bg-gray-700 transition duration-150">Excel (CSV) Aktar</button>
-			</div>
+			<button id="btnExportJSON" class="bg-gray-600 text-white p-2 rounded-lg text-sm hover:bg-gray-700 transition duration-150">JSON Aktar</button>
+			<button id="btnExportCSV" class="bg-gray-600 text-white p-2 rounded-lg text-sm hover:bg-gray-700 transition duration-150">Excel (CSV) Aktar</button>
 		</div>
+	</div>
 		
 
 
@@ -172,24 +164,53 @@
     <script>
 		let classes; 
 		let currentClass = '';
+		const cycleStatuses = ["Yaptı", "Yapmadı", "Eksik", "Gelmedi", "KitapYok"];
         document.addEventListener('DOMContentLoaded', function(){
 		
             classes = JSON.parse(localStorage.getItem('classes') || '{}');
-            
-            const statuses = ["", "Yaptı", "Yapmadı","Eksik","Gelmedi","KitapYok"];
 
-            function saveData(){ localStorage.setItem('classes', JSON.stringify(classes)); 
+            // YENİ: Kaydetme Bildirimini Gösteren Fonksiyon
+			function showSaveNotification(isError = false) {
+				const notification = document.getElementById('saveNotification');
 				
-                // YENİ KOD: Kaydedildi Bildirimi
-                const notification = document.getElementById('saveNotification');
-                notification.classList.remove('opacity-0', 'bg-red-500'); // Hata rengini kaldır (varsa)
-                notification.classList.add('opacity-100', 'bg-green-500');
-                
-                // 1.5 saniye sonra bildirimi gizle
-                setTimeout(() => {
-                    notification.classList.remove('opacity-100');
-                    notification.classList.add('opacity-0');
-                }, 1500);
+				// Önce tüm sınıfları temizle
+				notification.classList.remove('opacity-100', 'opacity-0', 'bg-green-500', 'bg-red-500');
+				
+				if (isError) {
+					notification.classList.add('opacity-100', 'bg-red-500');
+					notification.innerText = '❌ Hata Oluştu! Kaydedilemedi.';
+				} else {
+					notification.classList.add('opacity-100', 'bg-green-500');
+					notification.innerText = '✓ Kaydedildi!';
+				}
+				
+				// 1.5 saniye sonra bildirimi gizle
+				setTimeout(() => {
+					notification.classList.remove('opacity-100');
+					notification.classList.add('opacity-0');
+				}, 1500);
+			}
+
+			// KAYDETME FONKSİYONUNU GÜNCELLE
+			function saveData(){ 
+				localStorage.setItem('classes', JSON.stringify(classes)); 
+				// Bildirim çağırma artık dışarıda olacak
+			}
+			// YENİ: Statüleri Kaydetme Fonksiyonu
+			function saveStatuses() {
+				saveData();
+				showSaveNotification();
+				
+				document.querySelectorAll('.status.pending-change').forEach(cell => {
+					// Kaydedildi: * işaretini ve vurguyu kaldır
+					cell.classList.remove('pending-change');
+					
+					// KRİTİK DEĞİŞİKLİK: * işaretini metinden kaldır
+					cell.innerText = cell.innerText.replace('*', ''); 
+				});
+				
+				// Kaydetme butonunu gizle
+				document.getElementById('btnSaveStatuses').classList.add('hidden');
 			}
 
             // TARİH YARDIMCI FONKSİYONLARI
@@ -342,43 +363,47 @@
 					cell.removeEventListener('dblclick', cell._dblClickHandler); 
 
 					// Tek tıklama için yeni dinleyiciyi tanımlayalım
-					cell._clickHandler = function() { // İsimlendirmeyi dblClickHandler yerine clickHandler olarak değiştirdik
-						// --- 1. DURUM DEĞİŞİKLİĞİ MANTIĞI ---
+					// document.querySelectorAll('.status').forEach(cell => { ... } döngüsü içinde:
+					cell._clickHandler = function() {
+						
+						// 1. DURUM DEĞİŞİKLİĞİ MANTIĞI (Aynı Kalır)
 						const hwIndex = Number(this.dataset.hw);
 						const studentIndex = Number(this.dataset.student);
-						
 						const oldStatus = classes[currentClass].homeworks[hwIndex].statuses[studentIndex];
-						let current = statuses.indexOf(oldStatus);
+						let newStatus = ''; 
 						
-						current = (current + 1) % statuses.length;
-						const newStatus = statuses[current];
-						
-						// Veriyi Güncelle ve Kaydet
-						classes[currentClass].homeworks[hwIndex].statuses[studentIndex] = newStatus;
-						saveData();
-
-						// --- 2. VİSUEL GÜNCELLEME (Gereksiz renderTable çağrısını önler) ---
-						
-						// Butonun Görünümünü Güncelle
-						this.classList.remove(oldStatus); 
-						this.classList.add(newStatus); 
-						this.innerText = newStatus;
-
-						// --- 3. KALICI VURGU MANTIĞI ---
-						
-						// Önceki vurguyu kaldır (tüm tablodan)
-						const previousMarker = document.querySelector('.status .change-marker');
-						if (previousMarker) {
-							previousMarker.remove(); // Önceki emojiyi DOM'dan kaldır
+						if (oldStatus === "") {
+							newStatus = cycleStatuses[0]; 
+						} else {
+							let currentCycleIndex = cycleStatuses.indexOf(oldStatus);
+							currentCycleIndex = (currentCycleIndex + 1) % cycleStatuses.length;
+							newStatus = cycleStatuses[currentCycleIndex];
 						}
+						
+						// KRİTİK DEĞİŞİKLİK: Kaydetmek yerine sadece veriyi güncelle
+						classes[currentClass].homeworks[hwIndex].statuses[studentIndex] = newStatus;
+						// saveData(); ARTIK BURADA YOK!
 
-						// Yeni marker (emoji) elementi oluştur
-						const marker = document.createElement('span');
-						marker.classList.add('change-marker');
-						marker.innerHTML = '✍️'; // Parlak yıldız emojisi
+						// 2. VİSUEL GÜNCELLEME 
+						if (oldStatus !== "") {
+							this.classList.remove(oldStatus);
+						}
+						this.classList.add(newStatus); 
+						// KRİTİK DEĞİŞİKLİK: Statü metnine YILDIZ (*) Ekle
+						this.innerText = newStatus + '*'; 
 
-						// Yeni emojiyi bu butona ekle
-						this.appendChild(marker);
+						// Kaydedilmemiş vurgusunu ekle
+						this.classList.add('pending-change');
+
+						// Kaydetme butonunu göster
+						document.getElementById('btnSaveStatuses').classList.remove('hidden');
+
+						// YENİ: Kalıcı Vurgu (pending-change) ekle
+						this.classList.add('pending-change');
+
+						// Kaydetme butonunu göster
+						document.getElementById('btnSaveStatuses').classList.remove('hidden');
+
 					};
 					
 					// KRİTİK DEĞİŞİKLİK: 'dblclick' yerine 'click' ile dinlemeye başla
@@ -654,6 +679,8 @@
             document.getElementById('btnExportJSON').addEventListener('click', exportJSON);
             document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
             document.getElementById('classSelect').addEventListener('change', loadClass);
+			
+			document.getElementById('btnSaveStatuses').addEventListener('click', saveStatuses)
 
             // Başlangıç Mantığı
             updateClassSelect();
